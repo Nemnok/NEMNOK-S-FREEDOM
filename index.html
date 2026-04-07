@@ -5,9 +5,51 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nemnok's Freedom — Edit PDFs in Your Browser</title>
+    <style>
+      #error-panel {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        background: #1e1e2e;
+        color: #f38ba8;
+        font-family: monospace;
+        font-size: 14px;
+        padding: 16px;
+        z-index: 9999;
+        max-height: 50vh;
+        overflow-y: auto;
+        border-bottom: 2px solid #f38ba8;
+      }
+      #error-panel h2 { margin: 0 0 8px; font-size: 16px; }
+      #error-panel ul { margin: 0; padding-left: 20px; }
+    </style>
   </head>
   <body>
+    <div id="error-panel">
+      <h2>⚠ Application Error</h2>
+      <ul id="error-list"></ul>
+    </div>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        var panel = document.getElementById('error-panel');
+        var list = document.getElementById('error-list');
+        function showError(msg) {
+          panel.style.display = 'block';
+          var li = document.createElement('li');
+          li.textContent = msg;
+          list.appendChild(li);
+        }
+        window.onerror = function (message, source, lineno, colno, error) {
+          showError((error && error.stack) || (message + ' (' + source + ':' + lineno + ')'));
+          return true;
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason;
+          showError(reason && reason.stack ? reason.stack : String(reason));
+        });
+      })();
+    </script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
