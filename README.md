@@ -68,6 +68,29 @@ npm run build   # Build for production
 - **react-router-dom** — Client-side routing
 - **file-saver** — File download helper
 
+## GitHub Pages Deployment
+
+The app is deployed at **https://nemnok.github.io/NEMNOK-S-FREEDOM/**.
+
+### How it works
+
+1. Every push to `main` triggers the **Deploy to GitHub Pages** GitHub Actions workflow (`.github/workflows/deploy.yml`).
+2. The workflow runs `npm ci && npm run build`, then deploys the `dist/` folder using `actions/deploy-pages`.
+3. Vite is configured with `base: '/NEMNOK-S-FREEDOM/'` in `vite.config.ts` so all asset paths are correctly prefixed for the GitHub Pages subpath.
+
+### Base path constraints
+
+- All asset URLs in the built output are relative to `/NEMNOK-S-FREEDOM/` — this is handled automatically by Vite.
+- The PDF.js worker (`pdf.worker.min.mjs`) is served from the `public/` folder and referenced via `import.meta.env.BASE_URL` so it resolves correctly at the subpath.
+- The app uses `HashRouter` (`#/` style URLs) so deep links work without any server-side routing configuration.
+
+### Verifying the deployment in browser DevTools
+
+1. Open https://nemnok.github.io/NEMNOK-S-FREEDOM/ in Chrome/Edge.
+2. Open DevTools → **Console** tab: there should be no errors.
+3. Open DevTools → **Network** tab: the main JS bundle (`/NEMNOK-S-FREEDOM/assets/index-*.js`), CSS (`/NEMNOK-S-FREEDOM/assets/index-*.css`), and favicon (`/NEMNOK-S-FREEDOM/favicon.svg`) should all return **200**.
+4. You should see the app header with **"Nemnok's Freedom"** and two navigation tabs.
+
 ## Design
 
 Dark theme with **black and blue** color scheme for comfortable extended use.
