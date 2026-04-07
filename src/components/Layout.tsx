@@ -13,10 +13,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="bg-dark-800 border-b border-dark-600 px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            PS
+            NF
           </div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            PDF <span className="text-blue-400">Studio</span>
+            Nemnok's <span className="text-blue-400">Freedom</span>
           </h1>
         </div>
         <nav className="flex gap-1">
