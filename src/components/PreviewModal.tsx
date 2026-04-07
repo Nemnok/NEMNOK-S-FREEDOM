@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFPageInfo, PDFFileInfo } from '../types';
 import { renderPagePreview } from '../utils/pdfUtils';
 
@@ -9,23 +9,38 @@ interface PreviewModalProps {
 }
 
 export default function PreviewModal({ page, files, onClose }: PreviewModalProps) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<{ preview: string | null; loading: boolean }>({
+    preview: null,
+    loading: false,
+  });
+  const requestRef = useRef(0);
+
+  const file = useMemo(
+    () => (page ? files.find((f) => f.id === page.fileId) : undefined),
+    [page, files],
+  );
 
   useEffect(() => {
-    if (!page) {
-      setPreview(null);
-      return;
-    }
-    const file = files.find((f) => f.id === page.fileId);
-    if (!file) return;
+    if (!page || !file) return;
 
-    setLoading(true);
+    const requestId = ++requestRef.current;
+
     renderPagePreview(file.data, page.pageIndex)
-      .then(setPreview)
-      .catch(() => setPreview(null))
-      .finally(() => setLoading(false));
-  }, [page, files]);
+      .then((url) => {
+        if (requestRef.current === requestId) {
+          setState({ preview: url, loading: false });
+        }
+      })
+      .catch(() => {
+        if (requestRef.current === requestId) {
+          setState({ preview: null, loading: false });
+        }
+      });
+  }, [page, file]);
+
+  // Reset state when page changes via derived state
+  const loading = page && file ? (state.loading || (!state.preview && !state.loading)) : false;
+  const preview = page ? state.preview : null;
 
   if (!page) return null;
 
