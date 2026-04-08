@@ -13,8 +13,7 @@ export async function imagesToPdf(
   const pdfDoc = await PDFDocument.create();
 
   for (const img of images) {
-    const response = await fetch(img.data);
-    const arrayBuf = await response.arrayBuffer();
+    const arrayBuf = await img.file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuf);
 
     let embedded;

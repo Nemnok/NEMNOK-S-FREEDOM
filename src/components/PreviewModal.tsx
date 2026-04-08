@@ -9,10 +9,7 @@ interface PreviewModalProps {
 }
 
 export default function PreviewModal({ page, files, onClose }: PreviewModalProps) {
-  const [state, setState] = useState<{ preview: string | null; loading: boolean }>({
-    preview: null,
-    loading: false,
-  });
+  const [result, setResult] = useState<{ pageId: string; preview: string | null } | null>(null);
   const requestRef = useRef(0);
 
   const file = useMemo(
@@ -28,19 +25,18 @@ export default function PreviewModal({ page, files, onClose }: PreviewModalProps
     renderPagePreview(file.data, page.pageIndex)
       .then((url) => {
         if (requestRef.current === requestId) {
-          setState({ preview: url, loading: false });
+          setResult({ pageId: page.id, preview: url });
         }
       })
       .catch(() => {
         if (requestRef.current === requestId) {
-          setState({ preview: null, loading: false });
+          setResult({ pageId: page.id, preview: null });
         }
       });
   }, [page, file]);
 
-  // Reset state when page changes via derived state
-  const loading = page && file ? (state.loading || (!state.preview && !state.loading)) : false;
-  const preview = page ? state.preview : null;
+  const preview = page && result?.pageId === page.id ? result.preview : null;
+  const loading = !!page && !!file && (!result || result.pageId !== page.id);
 
   if (!page) return null;
 

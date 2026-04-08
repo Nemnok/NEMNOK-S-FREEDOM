@@ -94,7 +94,12 @@ export function usePdfFiles() {
   }, []);
 
   const removeSelectedPages = useCallback(() => {
-    setAllPages((prev) => prev.filter((p) => !p.selected));
+    setAllPages((prev) => {
+      const remaining = prev.filter((p) => !p.selected);
+      const activeFileIds = new Set(remaining.map((p) => p.fileId));
+      setFiles((prevFiles) => prevFiles.filter((f) => activeFileIds.has(f.id)));
+      return remaining;
+    });
   }, []);
 
   return {
