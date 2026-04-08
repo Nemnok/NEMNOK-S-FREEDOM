@@ -3,7 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { CONFIG, type PDFFileInfo, type PDFPageInfo } from '../types';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = import.meta.env.BASE_URL + 'pdf.worker.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = import.meta.env.BASE_URL + 'pdf.worker.min.js';
 
 let idCounter = 0;
 function uid(): string {
@@ -29,42 +29,46 @@ export async function loadPdfFile(file: File): Promise<PDFFileInfo> {
     throw new Error(`Failed to load "${file.name}": ${msg}`);
   }
 
-  if (pdfDoc.numPages > CONFIG.MAX_PAGES) {
-    throw new Error(`File "${file.name}" has ${pdfDoc.numPages} pages (max ${CONFIG.MAX_PAGES}).`);
+  try {
+    if (pdfDoc.numPages > CONFIG.MAX_PAGES) {
+      throw new Error(`File "${file.name}" has ${pdfDoc.numPages} pages (max ${CONFIG.MAX_PAGES}).`);
+    }
+
+    const pages: PDFPageInfo[] = [];
+
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale: CONFIG.THUMBNAIL_SCALE });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+
+      pages.push({
+        pageIndex: i - 1,
+        fileId,
+        fileName: file.name,
+        thumbnail: canvas.toDataURL('image/jpeg', 0.7),
+        width: viewport.width,
+        height: viewport.height,
+        selected: false,
+        id: uid(),
+      });
+    }
+
+    return {
+      id: fileId,
+      name: file.name,
+      size: file.size,
+      data: buffer,
+      pageCount: pdfDoc.numPages,
+      pages,
+    };
+  } finally {
+    pdfDoc.destroy();
   }
-
-  const pages: PDFPageInfo[] = [];
-
-  for (let i = 1; i <= pdfDoc.numPages; i++) {
-    const page = await pdfDoc.getPage(i);
-    const viewport = page.getViewport({ scale: CONFIG.THUMBNAIL_SCALE });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d')!;
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-
-    pages.push({
-      pageIndex: i - 1,
-      fileId,
-      fileName: file.name,
-      thumbnail: canvas.toDataURL('image/jpeg', 0.7),
-      width: viewport.width,
-      height: viewport.height,
-      selected: false,
-      id: uid(),
-    });
-  }
-
-  return {
-    id: fileId,
-    name: file.name,
-    size: file.size,
-    data: buffer,
-    pageCount: pdfDoc.numPages,
-    pages,
-  };
 }
 
 export async function renderPagePreview(
@@ -73,14 +77,18 @@ export async function renderPagePreview(
   scale: number = CONFIG.PREVIEW_SCALE,
 ): Promise<string> {
   const pdfDoc = await pdfjsLib.getDocument({ data: data.slice(0) }).promise;
-  const page = await pdfDoc.getPage(pageIndex + 1);
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = canvas.getContext('2d')!;
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return canvas.toDataURL('image/png');
+  try {
+    const page = await pdfDoc.getPage(pageIndex + 1);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d')!;
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    return canvas.toDataURL('image/png');
+  } finally {
+    pdfDoc.destroy();
+  }
 }
 
 export async function renderPageToCanvas(
@@ -89,14 +97,18 @@ export async function renderPageToCanvas(
   scale: number = 2,
 ): Promise<HTMLCanvasElement> {
   const pdfDoc = await pdfjsLib.getDocument({ data: data.slice(0) }).promise;
-  const page = await pdfDoc.getPage(pageIndex + 1);
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = canvas.getContext('2d')!;
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return canvas;
+  try {
+    const page = await pdfDoc.getPage(pageIndex + 1);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d')!;
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    return canvas;
+  } finally {
+    pdfDoc.destroy();
+  }
 }
 
 export async function mergePdfPages(

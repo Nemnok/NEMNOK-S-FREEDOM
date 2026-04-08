@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 export function downloadBlob(data: Uint8Array | Blob, filename: string): void {
-  const blob = data instanceof Blob ? data : new Blob([data.buffer as ArrayBuffer], { type: 'application/pdf' });
+  const blob = data instanceof Blob ? data : new Blob([data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer], { type: 'application/pdf' });
   saveAs(blob, filename);
 }
 

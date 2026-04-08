@@ -24,10 +24,6 @@ export function useImageFiles() {
 
       const newImages: ImageFileInfo[] = [];
       for (const file of imageFiles) {
-        if (newImages.length + images.length >= CONFIG.MAX_IMAGES) {
-          setError(`Maximum ${CONFIG.MAX_IMAGES} images allowed.`);
-          break;
-        }
         const dataUrl = await readAsDataUrl(file);
         const dims = await getImageDimensions(dataUrl);
         newImages.push({
@@ -41,11 +37,21 @@ export function useImageFiles() {
         });
       }
 
-      setImages((prev) => [...prev, ...newImages]);
+      setImages((prev) => {
+        const available = CONFIG.MAX_IMAGES - prev.length;
+        if (available <= 0) {
+          setError(`Maximum ${CONFIG.MAX_IMAGES} images allowed.`);
+          return prev;
+        }
+        if (newImages.length > available) {
+          setError(`Only ${available} more image(s) can be added (max ${CONFIG.MAX_IMAGES}).`);
+        }
+        return [...prev, ...newImages.slice(0, available)];
+      });
     } finally {
       setLoading(false);
     }
-  }, [images.length]);
+  }, []);
 
   const reorderImages = useCallback((newImages: ImageFileInfo[]) => {
     setImages(newImages);
